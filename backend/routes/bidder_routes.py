@@ -48,13 +48,6 @@ def create_bidder(payload: BidderCreate, db: Session = Depends(get_db)):
     return bidder
 
 
-@router.get("/{bidder_id}")
-def get_bidder(bidder_id: str, db: Session = Depends(get_db)):
-    bidder = db.query(Bidder).filter(Bidder.bidder_id == bidder_id).first()
-    if not bidder:
-        raise HTTPException(status_code=404, detail="Bidder not found")
-    return bidder
-
 @router.get("/lookup/{query}")
 def lookup_bidder(query: str, db: Session = Depends(get_db)):
     bidder = (
@@ -62,6 +55,14 @@ def lookup_bidder(query: str, db: Session = Depends(get_db)):
         .filter((Bidder.pan_number == query) | (Bidder.bidder_id == query))
         .first()
     )
+    if not bidder:
+        raise HTTPException(status_code=404, detail="Bidder not found")
+    return bidder
+
+
+@router.get("/{bidder_id}")
+def get_bidder(bidder_id: str, db: Session = Depends(get_db)):
+    bidder = db.query(Bidder).filter(Bidder.bidder_id == bidder_id).first()
     if not bidder:
         raise HTTPException(status_code=404, detail="Bidder not found")
     return bidder
