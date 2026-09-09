@@ -22,6 +22,11 @@ class BidderCreate(BaseModel):
     phone: Optional[str] = None
 
 
+@router.get("")
+def list_bidders(db: Session = Depends(get_db)):
+    return db.query(Bidder).all()
+
+
 @router.post("")
 def create_bidder(payload: BidderCreate, db: Session = Depends(get_db)):
     # If PAN is provided, check whether this bidder already exists
