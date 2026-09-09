@@ -38,106 +38,181 @@ function App() {
   }
 
   const officerTabs = [
-    { key: "tender", label: "Create Tender" },
-    { key: "alltenders", label: "All Tenders" },
-    { key: "overview", label: "Risk Overview" },
-    { key: "dashboard", label: "Dashboard" },
+    { key: "overview", label: "Risk Overview", icon: "📊" },
+    { key: "dashboard", label: "Compliance Dashboard", icon: "🛡️" },
+    { key: "tender", label: "Create Tender", icon: "➕" },
+    { key: "alltenders", label: "All Tenders", icon: "📁" },
   ];
 
   const bidderTabs = [
-    { key: "workspace", label: "Tender Workspace" },
-    { key: "apply", label: "Apply to Tender" },
-    { key: "upload", label: "Upload Documents" },
+    { key: "workspace", label: "Tenders", icon: "📋" },
+    { key: "apply", label: "Apply for Bid", icon: "📝" },
+    { key: "upload", label: "Upload & Verify", icon: "📤" },
   ];
 
   const tabs = user.role === "officer" ? officerTabs : bidderTabs;
 
   return (
-    <div style={{ minHeight: "100vh" }}>
-      <div
+    <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-app)" }}>
+      {/* Sleek Minimalist Navbar */}
+      <header
         style={{
-          background: "#101828",
-          padding: "18px 24px",
+          position: "sticky",
+          top: 0,
+          zIndex: 100,
+          background: "rgba(255, 255, 255, 0.88)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          borderBottom: "1px solid var(--border-subtle)",
+          padding: "0 24px",
+          height: 62,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          flexWrap: "wrap",
-          gap: 12,
         }}
       >
-        <div style={{ color: "white", fontFamily: "'Source Serif 4', Georgia, serif", fontSize: 18, fontWeight: 600 }}>
-          GeM Compliance Verification
-        </div>
-        <div style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center" }}>
-          {tabs.map((tab) => (
-            <button
-              key={tab.key}
-              onClick={() => setView(tab.key)}
-              style={{
-                background: view === tab.key ? "#B7791F" : "rgba(255,255,255,0.08)",
-                color: "white",
-                border: "none",
-                borderRadius: 20,
-                padding: "8px 16px",
-                fontSize: 13,
-                cursor: "pointer",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
-          <div style={{ width: 1, height: 20, background: "rgba(255,255,255,0.2)", margin: "0 4px" }} />
-          <span style={{ color: "rgba(255,255,255,0.7)", fontSize: 12.5 }}>
-            {user.role === "officer" ? user.name : `${user.name} (${user.bidderId})`}
+        {/* Brand & Role Tag */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: "var(--radius-md)",
+              background: "var(--brand-primary)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontWeight: 800,
+              fontSize: 14,
+              letterSpacing: "-0.04em",
+            }}
+          >
+            GeM
+          </div>
+          <div style={{ display: "flex", flexDirection: "column" }}>
+            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
+              Compliance Portal
+            </span>
+            <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -2 }}>
+              Government e-Marketplace
+            </span>
+          </div>
+
+          <span
+            className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
+            style={{ marginLeft: 6, textTransform: "capitalize" }}
+          >
+            {user.role === "officer" ? "Officer Portal" : "Bidder Portal"}
           </span>
+        </div>
+
+        {/* Segmented Tab Navigation */}
+        <nav
+          style={{
+            display: "flex",
+            alignItems: "center",
+            background: "var(--bg-subtle)",
+            padding: 3,
+            borderRadius: "var(--radius-md)",
+            border: "1px solid var(--border-subtle)",
+            gap: 2,
+          }}
+        >
+          {tabs.map((tab) => {
+            const isActive = view === tab.key;
+            return (
+              <button
+                key={tab.key}
+                onClick={() => setView(tab.key)}
+                style={{
+                  background: isActive ? "#FFFFFF" : "transparent",
+                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                  boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                  border: "none",
+                  borderRadius: "var(--radius-sm)",
+                  padding: "6px 13px",
+                  fontSize: 12.5,
+                  fontWeight: isActive ? 600 : 500,
+                  cursor: "pointer",
+                  transition: "all 0.15s ease",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 6,
+                }}
+              >
+                <span style={{ fontSize: 13 }}>{tab.icon}</span>
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Identity & Logout */}
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{user.name}</div>
+            {user.bidderId && (
+              <div style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                {user.bidderId}
+              </div>
+            )}
+          </div>
+
           <button
             onClick={handleLogout}
             style={{
-              background: "rgba(255,255,255,0.08)",
-              color: "white",
-              border: "none",
-              borderRadius: 20,
-              padding: "8px 16px",
-              fontSize: 13,
-              cursor: "pointer",
+              padding: "6px 12px",
+              fontSize: 12,
+              fontWeight: 500,
+              background: "transparent",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius-md)",
+              color: "var(--text-secondary)",
             }}
+            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-subtle)")}
+            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
-            Log out
+            Sign out
           </button>
         </div>
-      </div>
+      </header>
 
-      <div style={{ padding: "20px 16px 60px" }}>
-        {view === "workspace" && <TenderWorkspace onApply={handleApplyToTender} role="bidder" />}
-        {view === "alltenders" && <TenderWorkspace role="officer" />}
-        {view === "tender" && <CreateTender onTenderCreated={setTenderId} />}
-        {view === "apply" && (
-          <StartApplication
-            onApplicationCreated={setApplicationId}
-            onChecklistReady={setChecklist}
-            tenderId={tenderId}
-            setTenderId={setTenderId}
-            bidderId={user.bidderId}
-            bidderName={user.name}
-          />
-        )}
-        {view === "upload" && (
-          <UploadDocuments
-            applicationId={applicationId}
-            setApplicationId={setApplicationId}
-            checklist={checklist}
-          />
-        )}
-        {view === "overview" && (
-          <RiskOverview
-            onSelectApplication={setApplicationId}
-            goToDashboard={() => setView("dashboard")}
-          />
-        )}
-        {view === "dashboard" && (
-          <Dashboard applicationId={applicationId} setApplicationId={setApplicationId} />
-        )}
-      </div>
+      {/* Main Content Area */}
+      <main style={{ flex: 1, padding: "28px 24px 64px", maxWidth: "var(--max-w-content)", width: "100%", margin: "0 auto" }}>
+        <div className="animate-fade-in" key={view}>
+          {view === "workspace" && <TenderWorkspace onApply={handleApplyToTender} role="bidder" />}
+          {view === "alltenders" && <TenderWorkspace role="officer" />}
+          {view === "tender" && <CreateTender onTenderCreated={setTenderId} />}
+          {view === "apply" && (
+            <StartApplication
+              onApplicationCreated={setApplicationId}
+              onChecklistReady={setChecklist}
+              tenderId={tenderId}
+              setTenderId={setTenderId}
+              bidderId={user.bidderId}
+              bidderName={user.name}
+              goToUpload={() => setView("upload")}
+            />
+          )}
+          {view === "upload" && (
+            <UploadDocuments
+              applicationId={applicationId}
+              setApplicationId={setApplicationId}
+              checklist={checklist}
+            />
+          )}
+          {view === "overview" && (
+            <RiskOverview
+              onSelectApplication={setApplicationId}
+              goToDashboard={() => setView("dashboard")}
+            />
+          )}
+          {view === "dashboard" && (
+            <Dashboard applicationId={applicationId} setApplicationId={setApplicationId} />
+          )}
+        </div>
+      </main>
     </div>
   );
 }

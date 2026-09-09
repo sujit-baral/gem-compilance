@@ -1,22 +1,12 @@
 import { useState, useEffect } from "react";
 import { listTenders } from "../api/client";
 
-// Status badge colors — falls back to "Open" styling for any status
-// string the backend doesn't explicitly map here.
-const STATUS_STYLES = {
-  Open: { bg: "#EAF6EE", text: "#1B7F4C" },
-  Evaluation: { bg: "#EAF6EE", text: "#1B7F4C" },
-  Review: { bg: "#EAF6EE", text: "#1B7F4C" },
-  Awarded: { bg: "#EAF6EE", text: "#1B7F4C" },
-  Closed: { bg: "#F3F4F6", text: "#6B7280" },
-};
-
-// role="bidder" (default) shows an "Apply" button on each card.
-// role="officer" hides it — officers browse tenders, they don't bid.
 export default function TenderWorkspace({ onApply, role = "bidder" }) {
   const [tenders, setTenders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [search, setSearch] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
     listTenders()
@@ -24,30 +14,104 @@ export default function TenderWorkspace({ onApply, role = "bidder" }) {
         setTenders(Array.isArray(data) ? data : []);
         setError(null);
       })
-      .catch(() => setError("Could not load tenders. Check the backend is running."))
+      .catch(() => setError("Unable to load tenders from server."))
       .finally(() => setLoading(false));
   }, []);
 
   const isOfficer = role === "officer";
 
-  return (
-    <div style={{ maxWidth: 1000, margin: "40px auto" }}>
-      <h2 style={{ marginBottom: 4 }}>{isOfficer ? "All Tenders" : "Tender Workspace"}</h2>
-      <p style={{ color: "var(--text-muted)", fontSize: 14, marginBottom: 28 }}>
-        {isOfficer ? "Every tender created so far, most recent first" : "Live tenders open for bidding"}
-      </p>
+  // Categories extracted from tenders
+  const categories = ["all", ...new Set(tenders.map((t) => t.category).filter(Boolean))];
 
-      {loading && <p style={{ color: "var(--text-muted)" }}>Loading tenders...</p>}
-      {error && <p style={{ color: "var(--red)" }}>{error}</p>}
-      {!loading && !error && tenders.length === 0 && (
-        <p style={{ color: "var(--text-muted)" }}>
-          {isOfficer ? "No tenders have been created yet." : "No tenders are open right now — check back soon."}
-        </p>
+  const filteredTenders = tenders.filter((t) => {
+    const matchesSearch =
+      (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.tender_id || "").toLowerCase().includes(search.toLowerCase()) ||
+      (t.category || "").toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || t.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  return (
+    <div>
+      {/* Page Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 24, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <h2>{isOfficer ? "Procurement Tenders Catalog" : "Open GeM Tenders"}</h2>
+          <p style={{ fontSize: 13.5, color: "var(--text-secondary)", marginTop: 2 }}>
+            {isOfficer
+              ? "All procurement tenders published on the platform."
+              : "Explore live procurement opportunities and submit bids with automated compliance validation."}
+          </p>
+        </div>
+
+        {/* Search & Filter Bar */}
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <input
+            type="text"
+            placeholder="Search tender title or ID..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: 240, padding: "8px 12px", fontSize: 13 }}
+          />
+
+          {categories.length > 2 && (
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              style={{ width: "auto", padding: "8px 12px", fontSize: 13 }}
+            >
+              {categories.map((c) => (
+                <option key={c} value={c}>
+                  {c === "all" ? "All Categories" : c}
+                </option>
+              ))}
+            </select>
+          )}
+        </div>
+      </div>
+
+      {/* Loading & Error States */}
+      {loading && (
+        <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-muted)" }}>
+          Loading active tenders...
+        </div>
       )}
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 16 }}>
-        {tenders.map((t) => (
-          <TenderCard key={t.tender_id} tender={t} onApply={onApply} isOfficer={isOfficer} />
+      {error && (
+        <div className="badge badge-danger" style={{ width: "100%", padding: "12px 16px", fontSize: 13 }}>
+          {error}
+        </div>
+      )}
+
+      {!loading && !error && filteredTenders.length === 0 && (
+        <div
+          className="card"
+          style={{
+            textAlign: "center",
+            padding: "54px 20px",
+            color: "var(--text-muted)",
+            borderStyle: "dashed",
+          }}
+        >
+          <div style={{ fontSize: 32, marginBottom: 12 }}>📁</div>
+          <h3 style={{ fontSize: 16, color: "var(--text-primary)" }}>No tenders found</h3>
+          <p style={{ fontSize: 13, marginTop: 4 }}>
+            {search ? "No tenders matching your search criteria." : "No tenders are currently available."}
+          </p>
+        </div>
+      )}
+
+      {/* Tender Cards Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+          gap: 18,
+        }}
+      >
+        {filteredTenders.map((tender) => (
+          <TenderCard key={tender.tender_id} tender={tender} onApply={onApply} isOfficer={isOfficer} />
         ))}
       </div>
     </div>
@@ -55,100 +119,95 @@ export default function TenderWorkspace({ onApply, role = "bidder" }) {
 }
 
 function TenderCard({ tender, onApply, isOfficer }) {
-  const status = tender.status || "Open";
-  const style = STATUS_STYLES[status] || STATUS_STYLES.Open;
-
-  // These fields (verified_count, total_bids, deadline) may not exist
-  // yet on the backend's tender object — the card degrades gracefully
-  // and just omits that row if the data isn't there, rather than
-  // showing "undefined".
-  const hasProgress = typeof tender.verified_count === "number" && typeof tender.total_bids === "number";
-  const progressPct = hasProgress && tender.total_bids > 0
-    ? Math.round((tender.verified_count / tender.total_bids) * 100)
-    : 0;
-
   return (
-    <div style={{ background: "var(--card)", border: "1px solid var(--border)", borderRadius: 10, padding: 18 }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
-        <span style={{ color: "#2563EB", fontWeight: 600, fontSize: 12.5, fontFamily: "monospace" }}>
-          {tender.tender_id}
-        </span>
-        <span
-          style={{
-            background: style.bg,
-            color: style.text,
-            fontSize: 11,
-            fontWeight: 600,
-            padding: "3px 9px",
-            borderRadius: 20,
-          }}
-        >
-          {status}
-        </span>
-      </div>
-
-      <h3 style={{ fontSize: 16, margin: "4px 0 6px" }}>{tender.title || "Untitled tender"}</h3>
-      <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 16 }}>
-        {tender.category ? `${tender.category} — ` : ""}Automated compliance verification workspace
-      </p>
-
-      {tender.estimated_value != null && (
-        <p style={{ fontSize: 12.5, color: "var(--text-muted)", marginTop: -8, marginBottom: 16 }}>
-          Estimated value: ₹{Number(tender.estimated_value).toLocaleString("en-IN")}
-        </p>
-      )}
-
-        {hasProgress && (
-        <>
-          <div style={{ height: 6, background: "#EEF0F3", borderRadius: 4, overflow: "hidden", marginBottom: 8 }}>
-            <div style={{ height: "100%", width: `${progressPct}%`, background: "#1B7F4C" }} />
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11.5, color: "var(--text-muted)", marginBottom: 14 }}>
-            <span>{tender.verified_count}/{tender.total_bids} bids verified</span>
-          </div>
-        </>
-      )}
-
-     {tender.deadline && (
-  <p
-    style={{
-      fontSize: 12.5,
-      color: "var(--text-muted)",
-      marginTop: -8,
-      marginBottom: 16
-    }}
-  >
-    Deadline:{" "}
-    <strong
+    <div
+      className="card"
       style={{
-        backgroundColor: "#fff3cd",
-        color: "#856404",
-        padding: "3px 6px",
-        borderRadius: "4px"
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+      }}
+      onMouseOver={(e) => {
+        e.currentTarget.style.borderColor = "var(--border-medium)";
+        e.currentTarget.style.boxShadow = "var(--shadow-md)";
+      }}
+      onMouseOut={(e) => {
+        e.currentTarget.style.borderColor = "var(--border-subtle)";
+        e.currentTarget.style.boxShadow = "var(--shadow-xs)";
       }}
     >
-      {tender.deadline}
-    </strong>
-  </p>
-)}
+      <div>
+        {/* Top Meta Bar */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 11.5,
+              fontWeight: 600,
+              color: "var(--brand-accent)",
+              background: "var(--brand-accent-subtle)",
+              padding: "2px 8px",
+              borderRadius: "var(--radius-sm)",
+            }}
+          >
+            {tender.tender_id}
+          </span>
+          <span className="badge badge-success">Open for Bidding</span>
+        </div>
 
-      {!isOfficer && (
-        <button
-          onClick={() => onApply(tender.tender_id)}
+        {/* Title & Category */}
+        <h3 style={{ fontSize: 16, marginBottom: 6, color: "var(--text-primary)" }}>
+          {tender.title || "Untitled Tender"}
+        </h3>
+
+        {tender.category && (
+          <div style={{ fontSize: 12.5, color: "var(--text-muted)", marginBottom: 16 }}>
+            Category: <strong style={{ color: "var(--text-secondary)", fontWeight: 500 }}>{tender.category}</strong>
+          </div>
+        )}
+
+        {/* Metrics Box */}
+        <div
           style={{
-            width: "100%",
-            padding: "8px 0",
-            background: "var(--ink)",
-            color: "#fff",
-            border: "none",
-            borderRadius: 6,
-            fontSize: 13,
-            fontWeight: 600,
-            cursor: "pointer",
+            background: "var(--bg-subtle)",
+            borderRadius: "var(--radius-md)",
+            padding: "10px 14px",
+            marginBottom: 16,
+            display: "grid",
+            gridTemplateColumns: "1fr 1fr",
+            gap: 12,
           }}
         >
-          Apply to this tender
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>Estimated Value</div>
+            <div style={{ fontSize: 13.5, fontWeight: 700, color: "var(--text-primary)", marginTop: 1 }}>
+              {tender.estimated_value ? `₹${Number(tender.estimated_value).toLocaleString("en-IN")}` : "Not Disclosed"}
+            </div>
+          </div>
+          <div>
+            <div style={{ fontSize: 11, color: "var(--text-muted)", textTransform: "uppercase" }}>Deadline</div>
+            <div style={{ fontSize: 13.5, fontWeight: 600, color: "var(--text-primary)", marginTop: 1 }}>
+              {tender.deadline || "Flexible"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Action Footer */}
+      {!isOfficer ? (
+        <button
+          type="button"
+          className="primary"
+          onClick={() => onApply(tender.tender_id)}
+          style={{ width: "100%", marginTop: 8 }}
+        >
+          Apply to this Tender &rarr;
         </button>
+      ) : (
+        <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", paddingTop: 8 }}>
+          Published Tender &bull; Officer View Only
+        </div>
       )}
     </div>
   );
