@@ -39,7 +39,7 @@ function App() {
 
   const officerTabs = [
     { key: "overview", label: "Risk Overview", icon: "📊" },
-    { key: "dashboard", label: "Compliance Dashboard", icon: "🛡️" },
+    { key: "dashboard", label: "Dashboard", icon: "🛡️" },
     { key: "tender", label: "Create Tender", icon: "➕" },
     { key: "alltenders", label: "All Tenders", icon: "📁" },
   ];
@@ -54,132 +54,148 @@ function App() {
 
   return (
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-app)" }}>
-      {/* Sleek Minimalist Navbar */}
+      {/* Mobile-Friendly Sticky Navigation Header */}
       <header
         style={{
           position: "sticky",
           top: 0,
           zIndex: 100,
-          background: "rgba(255, 255, 255, 0.88)",
+          background: "rgba(255, 255, 255, 0.94)",
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           borderBottom: "1px solid var(--border-subtle)",
-          padding: "0 24px",
-          height: 62,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          padding: "10px 16px",
         }}
       >
-        {/* Brand & Role Tag */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "var(--radius-md)",
-              background: "var(--brand-primary)",
-              color: "#fff",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontWeight: 800,
-              fontSize: 14,
-              letterSpacing: "-0.04em",
-            }}
-          >
-            GeM
-          </div>
-          <div style={{ display: "flex", flexDirection: "column" }}>
-            <span style={{ fontWeight: 700, fontSize: 14, color: "var(--text-primary)", letterSpacing: "-0.01em" }}>
-              Compliance Portal
-            </span>
-            <span style={{ fontSize: 11, color: "var(--text-muted)", marginTop: -2 }}>
-              Government e-Marketplace
-            </span>
-          </div>
-
-          <span
-            className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
-            style={{ marginLeft: 6, textTransform: "capitalize" }}
-          >
-            {user.role === "officer" ? "Officer Portal" : "Bidder Portal"}
-          </span>
-        </div>
-
-        {/* Segmented Tab Navigation */}
-        <nav
+        <div
           style={{
+            maxWidth: "var(--max-w-content)",
+            margin: "0 auto",
             display: "flex",
-            alignItems: "center",
-            background: "var(--bg-subtle)",
-            padding: 3,
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-subtle)",
-            gap: 2,
+            flexDirection: "column",
+            gap: 10,
           }}
         >
-          {tabs.map((tab) => {
-            const isActive = view === tab.key;
-            return (
-              <button
-                key={tab.key}
-                onClick={() => setView(tab.key)}
+          {/* Top Row: Brand, Role Badge & User Account */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            {/* Brand Logo & Name */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div
                 style={{
-                  background: isActive ? "#FFFFFF" : "transparent",
-                  color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
-                  boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-                  border: "none",
+                  width: 28,
+                  height: 28,
                   borderRadius: "var(--radius-sm)",
-                  padding: "6px 13px",
-                  fontSize: 12.5,
-                  fontWeight: isActive ? 600 : 500,
-                  cursor: "pointer",
-                  transition: "all 0.15s ease",
+                  background: "var(--brand-primary)",
+                  color: "#fff",
                   display: "flex",
                   alignItems: "center",
-                  gap: 6,
+                  justifyContent: "center",
+                  fontWeight: 800,
+                  fontSize: 12,
                 }}
               >
-                <span style={{ fontSize: 13 }}>{tab.icon}</span>
-                {tab.label}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* User Identity & Logout */}
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <div style={{ textAlign: "right" }}>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-primary)" }}>{user.name}</div>
-            {user.bidderId && (
-              <div style={{ fontSize: 11, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
-                {user.bidderId}
+                GeM
               </div>
-            )}
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-primary)" }}>
+                  Compliance Portal
+                </span>
+                <span
+                  className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
+                  style={{ textTransform: "capitalize", fontSize: 10 }}
+                >
+                  {user.role === "officer" ? "Officer" : "Bidder"}
+                </span>
+              </div>
+            </div>
+
+            {/* User Identity & Logout */}
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {user.name}
+                </div>
+                {user.bidderId && (
+                  <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                    {user.bidderId}
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={handleLogout}
+                style={{
+                  padding: "4px 8px",
+                  fontSize: 11.5,
+                  fontWeight: 500,
+                  background: "transparent",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--radius-sm)",
+                  color: "var(--text-secondary)",
+                }}
+              >
+                Sign out
+              </button>
+            </div>
           </div>
 
-          <button
-            onClick={handleLogout}
+          {/* Bottom Row: Horizontally Scrollable Tabs (Ensures 100% Mobile Friendliness) */}
+          <nav
             style={{
-              padding: "6px 12px",
-              fontSize: 12,
-              fontWeight: 500,
-              background: "transparent",
-              border: "1px solid var(--border-subtle)",
+              display: "flex",
+              alignItems: "center",
+              background: "var(--bg-subtle)",
+              padding: 3,
               borderRadius: "var(--radius-md)",
-              color: "var(--text-secondary)",
+              border: "1px solid var(--border-subtle)",
+              gap: 4,
+              overflowX: "auto",
+              WebkitOverflowScrolling: "touch",
+              scrollbarWidth: "none",
             }}
-            onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "var(--bg-subtle)")}
-            onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
           >
-            Sign out
-          </button>
+            {tabs.map((tab) => {
+              const isActive = view === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setView(tab.key)}
+                  style={{
+                    flex: "1 0 auto",
+                    background: isActive ? "#FFFFFF" : "transparent",
+                    color: isActive ? "var(--text-primary)" : "var(--text-secondary)",
+                    boxShadow: isActive ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+                    border: "none",
+                    borderRadius: "var(--radius-sm)",
+                    padding: "6px 12px",
+                    fontSize: 12,
+                    fontWeight: isActive ? 600 : 500,
+                    cursor: "pointer",
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 5,
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  <span>{tab.icon}</span>
+                  {tab.label}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main style={{ flex: 1, padding: "28px 24px 64px", maxWidth: "var(--max-w-content)", width: "100%", margin: "0 auto" }}>
+      {/* Main Content Responsive Wrapper */}
+      <main
+        style={{
+          flex: 1,
+          padding: "20px 14px 56px",
+          maxWidth: "var(--max-w-content)",
+          width: "100%",
+          margin: "0 auto",
+        }}
+      >
         <div className="animate-fade-in" key={view}>
           {view === "workspace" && <TenderWorkspace onApply={handleApplyToTender} role="bidder" />}
           {view === "alltenders" && <TenderWorkspace role="officer" />}

@@ -146,7 +146,7 @@ export default function CreateTender({ onTenderCreated }) {
         </div>
       ) : (
         <form onSubmit={handleSubmit}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+          <div className="responsive-grid-2col">
             {/* Left Column: Basic Details */}
             <div className="card">
               <h3 style={{ fontSize: 15, marginBottom: 16 }}>1. Basic Tender Specifications</h3>

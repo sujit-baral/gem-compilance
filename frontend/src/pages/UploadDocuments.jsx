@@ -196,7 +196,7 @@ export default function UploadDocuments({
       )}
 
       {/* Main Two-Column Layout */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 24, alignItems: "start" }}>
+      <div className="responsive-grid-2col">
         {/* Left Column: Upload Form & Live OCR Stepper */}
         <div className="card">
           <h3 style={{ fontSize: 16, marginBottom: 16 }}>Upload New Certificate</h3>
