@@ -2,7 +2,7 @@
  * Central API client — every component calls the backend through these functions.
  * Change BASE_URL here if your backend ever runs on a different port.
  */
-export const BASE_URL = "http://127.0.0.1:8000";
+export const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000";
 
 export async function createTender(data) {
   const res = await fetch(`${BASE_URL}/tenders`, {
