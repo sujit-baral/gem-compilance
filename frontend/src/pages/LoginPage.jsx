@@ -203,6 +203,9 @@ function OfficerLoginForm({ onLogin }) {
   );
 }
 
+const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]{1}$/;
+const PHONE_REGEX = /^(?:\+91[\s-]?)?[6-9]\d{9}$/;
+
 function BidderAuthForm({ onLogin }) {
   const [tab, setTab] = useState("login"); // "login" | "register"
   const [query, setQuery] = useState("");
@@ -211,7 +214,55 @@ function BidderAuthForm({ onLogin }) {
 
   // Register Form State
   const [form, setForm] = useState({ company_name: "", pan_number: "", email: "", phone: "" });
+  const [touched, setTouched] = useState({ company_name: false, pan_number: false, email: false, phone: false });
+  const [fieldErrors, setFieldErrors] = useState({});
   const [created, setCreated] = useState(null);
+
+  function validate(values = form) {
+    const errs = {};
+    const trimmedName = values.company_name.trim();
+    if (!trimmedName) {
+      errs.company_name = "Company name is required.";
+    } else if (trimmedName.length < 3) {
+      errs.company_name = "Company name must be at least 3 characters long.";
+    }
+
+    const trimmedPan = values.pan_number.trim().toUpperCase();
+    if (!trimmedPan) {
+      errs.pan_number = "PAN number is required.";
+    } else if (!PAN_REGEX.test(trimmedPan)) {
+      errs.pan_number = "Invalid PAN format. Must be 10 characters (e.g. ABCDE1234F).";
+    }
+
+    const trimmedEmail = values.email.trim();
+    if (!trimmedEmail) {
+      errs.email = "Gmail address is required.";
+    } else if (!GMAIL_PATTERN.test(trimmedEmail)) {
+      errs.email = "Please enter a valid Gmail address (e.g. name@gmail.com).";
+    }
+
+    const trimmedPhone = values.phone.trim();
+    if (trimmedPhone && !PHONE_REGEX.test(trimmedPhone.replace(/\s+/g, ""))) {
+      errs.phone = "Enter a valid 10-digit mobile number (e.g. 9876543210).";
+    }
+
+    return errs;
+  }
+
+  function handleFieldChange(field, value) {
+    const updated = { ...form, [field]: value };
+    setForm(updated);
+    if (touched[field]) {
+      const errs = validate(updated);
+      setFieldErrors(errs);
+    }
+  }
+
+  function handleBlur(field) {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    const errs = validate();
+    setFieldErrors(errs);
+  }
 
   async function handleLoginSubmit(e) {
     e.preventDefault();
@@ -231,14 +282,25 @@ function BidderAuthForm({ onLogin }) {
     e.preventDefault();
     setError("");
 
-    if (!GMAIL_PATTERN.test(form.email.trim())) {
-      setError("Please enter a valid Gmail address (ending in @gmail.com).");
+    setTouched({ company_name: true, pan_number: true, email: true, phone: true });
+    const errs = validate();
+    setFieldErrors(errs);
+
+    if (Object.keys(errs).length > 0) {
+      setError("Please fix the validation errors in the form before submitting.");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await createBidder(form);
+      const payload = {
+        company_name: form.company_name.trim(),
+        pan_number: form.pan_number.trim().toUpperCase(),
+        email: form.email.trim().toLowerCase(),
+        phone: form.phone.trim() || undefined,
+      };
+
+      const response = await createBidder(payload);
       if (!response.bidder_id) {
         setError(response.detail || "Registration failed. Please try again.");
         setLoading(false);
@@ -311,7 +373,7 @@ function BidderAuthForm({ onLogin }) {
       <div style={{ display: "flex", gap: 12, borderBottom: "1px solid var(--border-subtle)", marginBottom: 18 }}>
         <button
           type="button"
-          onClick={() => { setTab("login"); setError(""); }}
+          onClick={() => { setTab("login"); setError(""); setFieldErrors({}); }}
           style={{
             background: "transparent",
             border: "none",
@@ -327,7 +389,7 @@ function BidderAuthForm({ onLogin }) {
         </button>
         <button
           type="button"
-          onClick={() => { setTab("register"); setError(""); }}
+          onClick={() => { setTab("register"); setError(""); setFieldErrors({}); }}
           style={{
             background: "transparent",
             border: "none",
@@ -344,7 +406,7 @@ function BidderAuthForm({ onLogin }) {
       </div>
 
       {tab === "login" ? (
-        <form onSubmit={handleLoginSubmit}>
+        <form onSubmit={handleLoginSubmit} noValidate>
           <label>Company PAN or Bidder ID</label>
           <input
             value={query}
@@ -367,50 +429,112 @@ function BidderAuthForm({ onLogin }) {
           </button>
         </form>
       ) : (
-        <form onSubmit={handleRegisterSubmit}>
-          <label>Company / Legal Entity Name</label>
-          <input
-            value={form.company_name}
-            onChange={(e) => setForm({ ...form, company_name: e.target.value })}
-            placeholder="e.g. ABC Enterprises Pvt Ltd"
-            required
-          />
+        <form onSubmit={handleRegisterSubmit} noValidate>
+          {/* Company Name */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Company / Legal Entity Name <span style={{ color: "var(--danger)" }}>*</span></span>
+            </label>
+            <input
+              value={form.company_name}
+              onChange={(e) => handleFieldChange("company_name", e.target.value)}
+              onBlur={() => handleBlur("company_name")}
+              placeholder="e.g. ABC Enterprises Pvt Ltd"
+              style={{
+                borderColor: touched.company_name && fieldErrors.company_name ? "var(--danger)" : undefined,
+              }}
+              required
+            />
+            {touched.company_name && fieldErrors.company_name && (
+              <p style={{ color: "var(--danger)", fontSize: 11.5, marginTop: 3, marginBottom: 0 }}>
+                ⚠️ {fieldErrors.company_name}
+              </p>
+            )}
+          </div>
 
-          <label>Company PAN Number</label>
-          <input
-            value={form.pan_number}
-            onChange={(e) => setForm({ ...form, pan_number: e.target.value.toUpperCase() })}
-            placeholder="e.g. ABCDE1234F"
-            maxLength={10}
-            required
-          />
+          {/* PAN Number */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Company PAN Number <span style={{ color: "var(--danger)" }}>*</span></span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>10 Alphanumeric</span>
+            </label>
+            <input
+              value={form.pan_number}
+              onChange={(e) => handleFieldChange("pan_number", e.target.value.toUpperCase())}
+              onBlur={() => handleBlur("pan_number")}
+              placeholder="e.g. ABCDE1234F"
+              maxLength={10}
+              style={{
+                textTransform: "uppercase",
+                fontFamily: "var(--font-mono)",
+                borderColor: touched.pan_number && fieldErrors.pan_number ? "var(--danger)" : undefined,
+              }}
+              required
+            />
+            {touched.pan_number && fieldErrors.pan_number && (
+              <p style={{ color: "var(--danger)", fontSize: 11.5, marginTop: 3, marginBottom: 0 }}>
+                ⚠️ {fieldErrors.pan_number}
+              </p>
+            )}
+          </div>
 
-          <label>Official Gmail Address</label>
-          <input
-            type="email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            placeholder="authorized@gmail.com"
-            required
-          />
+          {/* Email */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Official Gmail Address <span style={{ color: "var(--danger)" }}>*</span></span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>@gmail.com</span>
+            </label>
+            <input
+              type="email"
+              value={form.email}
+              onChange={(e) => handleFieldChange("email", e.target.value)}
+              onBlur={() => handleBlur("email")}
+              placeholder="authorized@gmail.com"
+              style={{
+                borderColor: touched.email && fieldErrors.email ? "var(--danger)" : undefined,
+              }}
+              required
+            />
+            {touched.email && fieldErrors.email && (
+              <p style={{ color: "var(--danger)", fontSize: 11.5, marginTop: 3, marginBottom: 0 }}>
+                ⚠️ {fieldErrors.email}
+              </p>
+            )}
+          </div>
 
-          <label>Contact Phone (Optional)</label>
-          <input
-            value={form.phone}
-            onChange={(e) => setForm({ ...form, phone: e.target.value })}
-            placeholder="+91 98765 43210"
-          />
+          {/* Phone */}
+          <div style={{ marginBottom: 14 }}>
+            <label style={{ display: "flex", justifyContent: "space-between" }}>
+              <span>Contact Phone (Optional)</span>
+              <span style={{ fontSize: 11, color: "var(--text-muted)" }}>10 digits</span>
+            </label>
+            <input
+              type="tel"
+              value={form.phone}
+              onChange={(e) => handleFieldChange("phone", e.target.value)}
+              onBlur={() => handleBlur("phone")}
+              placeholder="+91 98765 43210"
+              style={{
+                borderColor: touched.phone && fieldErrors.phone ? "var(--danger)" : undefined,
+              }}
+            />
+            {touched.phone && fieldErrors.phone && (
+              <p style={{ color: "var(--danger)", fontSize: 11.5, marginTop: 3, marginBottom: 0 }}>
+                ⚠️ {fieldErrors.phone}
+              </p>
+            )}
+          </div>
 
           {error && (
             <div
               className="badge badge-danger"
-              style={{ width: "100%", padding: "8px 12px", marginTop: 12, fontSize: 12.5 }}
+              style={{ width: "100%", padding: "8px 12px", marginTop: 8, fontSize: 12.5 }}
             >
               {error}
             </div>
           )}
 
-          <button type="submit" className="primary" disabled={loading} style={{ width: "100%", marginTop: 18 }}>
+          <button type="submit" className="primary" disabled={loading} style={{ width: "100%", marginTop: 14 }}>
             {loading ? "Registering..." : "Register & Get Bidder ID"}
           </button>
         </form>
