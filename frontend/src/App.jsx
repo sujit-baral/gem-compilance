@@ -8,16 +8,55 @@ import Dashboard from "./pages/Dashboard";
 import RiskOverview from "./pages/RiskOverview";
 
 function App() {
-  const [user, setUser] = useState(null); // { role: "officer"|"bidder", name, bidderId? }
-  const [view, setView] = useState(null);
+  const [user, setUser] = useState(() => {
+    try {
+      const saved = localStorage.getItem("gem_user");
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
 
-  const [tenderId, setTenderId] = useState("");
-  const [applicationId, setApplicationId] = useState("");
-  const [checklist, setChecklist] = useState([]);
+  const [view, setView] = useState(() => {
+    try {
+      const savedView = localStorage.getItem("gem_view");
+      if (savedView) return savedView;
+      const savedUser = localStorage.getItem("gem_user");
+      if (savedUser) {
+        const u = JSON.parse(savedUser);
+        return u.role === "officer" ? "overview" : "workspace";
+      }
+      return null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [tenderId, setTenderId] = useState(() => {
+    try { return localStorage.getItem("gem_tenderId") || ""; } catch { return ""; }
+  });
+  const [applicationId, setApplicationId] = useState(() => {
+    try { return localStorage.getItem("gem_applicationId") || ""; } catch { return ""; }
+  });
+  const [checklist, setChecklist] = useState(() => {
+    try {
+      const saved = localStorage.getItem("gem_checklist");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
 
   function handleLogin(loggedInUser) {
     setUser(loggedInUser);
-    setView(loggedInUser.role === "officer" ? "overview" : "workspace");
+    const initialView = loggedInUser.role === "officer" ? "overview" : "workspace";
+    setView(initialView);
+    try {
+      localStorage.setItem("gem_user", JSON.stringify(loggedInUser));
+      localStorage.setItem("gem_view", initialView);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function handleLogout() {
@@ -26,11 +65,34 @@ function App() {
     setTenderId("");
     setApplicationId("");
     setChecklist([]);
+    try {
+      localStorage.removeItem("gem_user");
+      localStorage.removeItem("gem_view");
+      localStorage.removeItem("gem_tenderId");
+      localStorage.removeItem("gem_applicationId");
+      localStorage.removeItem("gem_checklist");
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function handleViewChange(newView) {
+    setView(newView);
+    try {
+      localStorage.setItem("gem_view", newView);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   function handleApplyToTender(id) {
     setTenderId(id);
-    setView("apply");
+    handleViewChange("apply");
+    try {
+      localStorage.setItem("gem_tenderId", id);
+    } catch (e) {
+      console.error(e);
+    }
   }
 
   if (!user) {
@@ -159,7 +221,7 @@ function App() {
               return (
                 <button
                   key={tab.key}
-                  onClick={() => setView(tab.key)}
+                  onClick={() => handleViewChange(tab.key)}
                   style={{
                     flex: "1 0 auto",
                     background: isActive ? "#FFFFFF" : "transparent",
@@ -202,30 +264,51 @@ function App() {
           {view === "tender" && <CreateTender onTenderCreated={setTenderId} />}
           {view === "apply" && (
             <StartApplication
-              onApplicationCreated={setApplicationId}
-              onChecklistReady={setChecklist}
+              onApplicationCreated={(id) => {
+                setApplicationId(id);
+                try { localStorage.setItem("gem_applicationId", id); } catch {}
+              }}
+              onChecklistReady={(list) => {
+                setChecklist(list);
+                try { localStorage.setItem("gem_checklist", JSON.stringify(list)); } catch {}
+              }}
               tenderId={tenderId}
-              setTenderId={setTenderId}
+              setTenderId={(id) => {
+                setTenderId(id);
+                try { localStorage.setItem("gem_tenderId", id); } catch {}
+              }}
               bidderId={user.bidderId}
               bidderName={user.name}
-              goToUpload={() => setView("upload")}
+              goToUpload={() => handleViewChange("upload")}
             />
           )}
           {view === "upload" && (
             <UploadDocuments
               applicationId={applicationId}
-              setApplicationId={setApplicationId}
+              setApplicationId={(id) => {
+                setApplicationId(id);
+                try { localStorage.setItem("gem_applicationId", id); } catch {}
+              }}
               checklist={checklist}
             />
           )}
           {view === "overview" && (
             <RiskOverview
-              onSelectApplication={setApplicationId}
-              goToDashboard={() => setView("dashboard")}
+              onSelectApplication={(id) => {
+                setApplicationId(id);
+                try { localStorage.setItem("gem_applicationId", id); } catch {}
+              }}
+              goToDashboard={() => handleViewChange("dashboard")}
             />
           )}
           {view === "dashboard" && (
-            <Dashboard applicationId={applicationId} setApplicationId={setApplicationId} />
+            <Dashboard
+              applicationId={applicationId}
+              setApplicationId={(id) => {
+                setApplicationId(id);
+                try { localStorage.setItem("gem_applicationId", id); } catch {}
+              }}
+            />
           )}
         </div>
       </main>
