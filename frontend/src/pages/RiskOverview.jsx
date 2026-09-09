@@ -7,11 +7,23 @@ export default function RiskOverview({ onSelectApplication, goToDashboard }) {
   const [filterRisk, setFilterRisk] = useState("all");
   const [search, setSearch] = useState("");
 
+  const [error, setError] = useState(null);
+
+  function loadData() {
+    setLoading(true);
+    setError(null);
+    listApplications()
+      .then((data) => {
+        setApplications(Array.isArray(data) ? data : []);
+      })
+      .catch(() => {
+        setError("Unable to connect to the backend. The free server may be waking up — please try again in a few seconds.");
+      })
+      .finally(() => setLoading(false));
+  }
+
   useEffect(() => {
-    listApplications().then((data) => {
-      setApplications(Array.isArray(data) ? data : []);
-      setLoading(false);
-    });
+    loadData();
   }, []);
 
   const counts = { Low: 0, Medium: 0, High: 0, Pending: 0 };
@@ -111,6 +123,25 @@ export default function RiskOverview({ onSelectApplication, goToDashboard }) {
       {loading ? (
         <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-muted)" }}>
           Loading risk overview...
+        </div>
+      ) : error ? (
+        <div
+          className="card"
+          style={{
+            textAlign: "center",
+            padding: "36px 20px",
+            borderColor: "var(--danger-border)",
+            background: "var(--danger-bg)",
+          }}
+        >
+          <div style={{ fontSize: 28, marginBottom: 8 }}>⚠️</div>
+          <h4 style={{ color: "var(--danger)" }}>Connection Notice</h4>
+          <p style={{ fontSize: 13, color: "var(--text-secondary)", marginTop: 4, maxWidth: 460, margin: "6px auto 16px" }}>
+            {error}
+          </p>
+          <button type="button" className="primary" onClick={loadData}>
+            ↻ Retry Connection
+          </button>
         </div>
       ) : filteredApps.length === 0 ? (
         <div
