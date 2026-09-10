@@ -1,5 +1,6 @@
 import { useState } from "react";
 import LoginPage from "./LoginPage";
+import Logo from "../components/Logo";
 
 export default function LandingPage({ onLogin }) {
   const [showAuthModal, setShowAuthModal] = useState(false);
@@ -37,34 +38,7 @@ export default function LandingPage({ onLogin }) {
           }}
         >
           {/* Brand Identity */}
-          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
-            <div
-              style={{
-                width: 30,
-                height: 30,
-                borderRadius: 8,
-                background: "#0F172A",
-                color: "#FFFFFF",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontWeight: 800,
-                fontSize: 12,
-                letterSpacing: "-0.04em",
-                flexShrink: 0,
-              }}
-            >
-              GeM
-            </div>
-            <div style={{ display: "flex", flexDirection: "column" }}>
-              <span style={{ fontWeight: 700, fontSize: 13.5, letterSpacing: "-0.02em", color: "#0F172A", whiteSpace: "nowrap" }}>
-                Compliance OS
-              </span>
-              <span className="landing-subtitle">
-                Automated Procurement Intelligence
-              </span>
-            </div>
-          </div>
+          <Logo size="md" subtitle="Compliance OS" tagline="Automated Procurement Intelligence" />
 
           {/* Action CTAs */}
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>

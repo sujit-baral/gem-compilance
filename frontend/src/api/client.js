@@ -8,6 +8,16 @@ export const BASE_URL =
     ? "https://gem-compilance-backend.onrender.com"
     : "http://127.0.0.1:8000");
 
+export async function checkHealth() {
+  try {
+    const res = await fetch(`${BASE_URL}/health`, { method: "GET" });
+    if (!res.ok) throw new Error("Health check returned status " + res.status);
+    return await res.json();
+  } catch (err) {
+    return { status: "error", message: err.message };
+  }
+}
+
 export async function createTender(data) {
   const res = await fetch(`${BASE_URL}/tenders`, {
     method: "POST",

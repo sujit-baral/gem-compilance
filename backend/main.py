@@ -40,6 +40,18 @@ app.include_router(document_routes.router)
 app.include_router(dashboard_routes.router)
 
 
+import time
+
 @app.get("/")
 def root():
     return {"status": "running", "message": "GeM Compliance Platform API is up"}
+
+
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "gem-compliance-backend",
+        "timestamp": time.time(),
+        "uptime": "active"
+    }

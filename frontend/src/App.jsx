@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { ToastProvider } from "./context/ToastContext";
+import Logo from "./components/Logo";
+import BackendHealthIndicator from "./components/BackendHealthIndicator";
 import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import TenderWorkspace from "./pages/TenderWorkspace";
@@ -155,34 +157,13 @@ function MainApp() {
           >
             {/* Brand Logo & Name */}
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, minWidth: 0 }}>
-              <div
-                style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: "var(--radius-sm)",
-                  background: "var(--brand-primary)",
-                  color: "#fff",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  fontWeight: 800,
-                  fontSize: 11,
-                  flexShrink: 0,
-                }}
+              <Logo size="sm" subtitle="Compliance" showSubtitle={false} />
+              <span
+                className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
+                style={{ textTransform: "capitalize", fontSize: 9.5, padding: "2px 6px", flexShrink: 0 }}
               >
-                GeM
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
-                <span className="header-brand-title">
-                  Compliance <span className="header-portal-word">Portal</span>
-                </span>
-                <span
-                  className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
-                  style={{ textTransform: "capitalize", fontSize: 9.5, padding: "2px 6px", flexShrink: 0 }}
-                >
-                  {user.role === "officer" ? "Officer" : "Bidder"}
-                </span>
-              </div>
+                {user.role === "officer" ? "Officer" : "Bidder"}
+              </span>
             </div>
 
             {/* User Identity & Logout */}
@@ -356,6 +337,7 @@ export default function App() {
   return (
     <ToastProvider>
       <MainApp />
+      <BackendHealthIndicator />
     </ToastProvider>
   );
 }

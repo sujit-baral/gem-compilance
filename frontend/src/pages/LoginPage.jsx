@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { createBidder, findBidder } from "../api/client";
+import Logo from "../components/Logo";
 
 const OFFICER_USERNAME = "officer";
 const OFFICER_PASSWORD = "gem2026";
@@ -22,29 +23,14 @@ export default function LoginPage({ onLogin, defaultRole = "bidder", isModal = f
       }}
     >
       {/* Modal / Card Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
-        <div
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: "var(--radius-md)",
-            background: "var(--brand-primary)",
-            color: "#fff",
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontWeight: 800,
-            fontSize: 13,
-          }}
-        >
-          GeM
-        </div>
-        <div>
-          <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+        <Logo size="md" showSubtitle={false} />
+        <div style={{ borderLeft: "1px solid var(--border-subtle)", paddingLeft: 12 }}>
+          <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
             {role === "officer" ? "Procurement Officer Access" : "Bidder & Vendor Portal"}
           </h2>
-          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
-            {role === "officer" ? "Authorized compliance evaluation workspace" : "Bid submission & automated OCR verification"}
+          <p style={{ fontSize: 11.5, color: "var(--text-muted)", margin: "2px 0 0" }}>
+            {role === "officer" ? "Compliance evaluation & audit scrutiny" : "Tender bid application & document verification"}
           </p>
         </div>
       </div>

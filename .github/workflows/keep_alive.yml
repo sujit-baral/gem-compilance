@@ -1,0 +1,26 @@
+name: Render 24/7 Keep Alive Heartbeat
+
+on:
+  schedule:
+    # Runs every 10 minutes to prevent Render free tier from spinning down
+    - cron: '*/10 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub Actions tab
+
+jobs:
+  ping-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Render Backend Health Check
+        run: |
+          echo "Sending keep-alive ping to Render backend..."
+          RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" https://gem-compilance-backend.onrender.com/health)
+          echo "Response: $RESPONSE"
+          
+          # If main backend is waking up, retry once after 5 seconds
+          if [[ "$RESPONSE" == *"HTTP_STATUS:200"* ]]; then
+            echo "✓ Render backend is active and healthy!"
+          else
+            echo "Server may be waking up, retrying..."
+            sleep 5
+            curl -s -f https://gem-compilance-backend.onrender.com/health || true
+          fi
