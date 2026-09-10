@@ -276,7 +276,18 @@ function MainApp() {
               goToApply={() => handleViewChange("workspace")}
             />
           )}
-          {view === "workspace" && <TenderWorkspace onApply={handleApplyToTender} role="bidder" />}
+          {view === "workspace" && (
+            <TenderWorkspace
+              onApply={handleApplyToTender}
+              role="bidder"
+              bidderId={user.bidderId}
+              onTrackApplication={(appId) => {
+                setApplicationId(appId);
+                try { localStorage.setItem("gem_applicationId", appId); } catch {}
+                handleViewChange("tracker");
+              }}
+            />
+          )}
           {view === "alltenders" && <TenderWorkspace role="officer" />}
           {view === "tender" && <CreateTender onTenderCreated={setTenderId} />}
           {view === "apply" && (

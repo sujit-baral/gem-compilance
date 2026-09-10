@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { uploadDocument, getApplicationDocuments, submitApplication, BASE_URL } from "../api/client";
 import { useToast } from "../context/ToastContext";
+import { DEMO_PRESETS, generateDemoCertificateFile } from "../utils/sampleDocumentGenerator";
 
 const FALLBACK_DOCUMENT_TYPES = [
   "PAN Card",
@@ -45,6 +46,7 @@ export default function UploadDocuments({
   const [submitting, setSubmitting] = useState(false);
   const [submissionSuccess, setSubmissionSuccess] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [generatingDemo, setGeneratingDemo] = useState(false);
 
   useEffect(() => {
     if (!applicationId) return;
@@ -64,6 +66,20 @@ export default function UploadDocuments({
     checklist && checklist.length > 0
       ? checklist
       : FALLBACK_DOCUMENT_TYPES;
+
+  async function handleLoadDemo(presetId) {
+    setGeneratingDemo(true);
+    try {
+      const { file: demoFile, preset } = await generateDemoCertificateFile(presetId);
+      setDocumentType(preset.docType);
+      setFile(demoFile);
+      toast.info("Demo Preset Loaded", `Sample ${preset.docType} (${preset.keyField}) attached ready for OCR test.`);
+    } catch {
+      toast.error("Generation Error", "Could not generate sample file.");
+    } finally {
+      setGeneratingDemo(false);
+    }
+  }
 
   async function handleUpload(e) {
     e.preventDefault();
@@ -207,10 +223,64 @@ export default function UploadDocuments({
       <div className="responsive-grid-2col">
         {/* Left Column: Upload Form & Live OCR Stepper */}
         <div className="card">
-          <h3 style={{ fontSize: 16, marginBottom: 16 }}>Upload New Certificate</h3>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+            <h3 style={{ fontSize: 16 }}>Upload Certificate</h3>
+            <span className="badge badge-neutral" style={{ fontSize: 10.5 }}>AI OCR Pipeline</span>
+          </div>
 
           {phase === "idle" && (
             <form onSubmit={handleUpload}>
+              {/* 1-Click Demo Document Pre-loader Banner */}
+              <div
+                style={{
+                  background: "var(--brand-accent-subtle, #EFF6FF)",
+                  border: "1px solid var(--info-border, #BFDBFE)",
+                  borderRadius: "var(--radius-md)",
+                  padding: "12px 14px",
+                  marginBottom: 18,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6, flexWrap: "wrap", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12.5, fontWeight: 700, color: "var(--info, #2563EB)" }}>
+                    <span>⚡ 1-Click Demo Document Pre-loader</span>
+                  </div>
+                  <span style={{ fontSize: 11, color: "var(--text-muted)" }}>No local PDF needed</span>
+                </div>
+                <p style={{ fontSize: 11.5, color: "var(--text-secondary)", marginBottom: 10, lineHeight: 1.4 }}>
+                  Test the complete AI OCR, regex extraction, Levenshtein matching, and SHA-256 pipeline instantly:
+                </p>
+                <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                  {DEMO_PRESETS.map((p) => {
+                    const isSelected = documentType === p.docType && file?.name === p.filename;
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => handleLoadDemo(p.id)}
+                        disabled={generatingDemo}
+                        style={{
+                          background: isSelected ? "var(--brand-primary, #0F172A)" : "#FFFFFF",
+                          color: isSelected ? "#FFFFFF" : "var(--text-primary)",
+                          border: isSelected ? "1px solid var(--brand-primary)" : "1px solid var(--border-subtle)",
+                          fontSize: 11,
+                          fontWeight: 600,
+                          padding: "5px 10px",
+                          borderRadius: 6,
+                          boxShadow: "0 1px 2px rgba(0,0,0,0.04)",
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 5,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <span>📄</span>
+                        <span>{p.docType.split(" ")[0]} ({p.keyField.substring(0, 5)}...)</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <label>Select Document Type *</label>
               <select
                 value={documentType}

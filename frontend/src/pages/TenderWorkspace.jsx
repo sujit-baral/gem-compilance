@@ -1,29 +1,38 @@
 import { useState, useEffect } from "react";
-import { listTenders } from "../api/client";
+import { listTenders, listApplications } from "../api/client";
 
-export default function TenderWorkspace({ onApply, role = "bidder" }) {
+export default function TenderWorkspace({ onApply, onTrackApplication, role = "bidder", bidderId = null }) {
   const [tenders, setTenders] = useState([]);
+  const [bidderApplications, setBidderApplications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
 
   useEffect(() => {
-    listTenders()
-      .then((data) => {
-        setTenders(Array.isArray(data) ? data : []);
+    setLoading(true);
+    const tenderPromise = listTenders();
+    const appPromise = (role === "bidder" && bidderId) ? listApplications(bidderId) : Promise.resolve([]);
+
+    Promise.all([tenderPromise, appPromise])
+      .then(([tenderData, appData]) => {
+        setTenders(Array.isArray(tenderData) ? tenderData : []);
+        setBidderApplications(Array.isArray(appData) ? appData : []);
         setError(null);
       })
       .catch(() => setError("Unable to load tenders from server."))
       .finally(() => setLoading(false));
-  }, []);
+  }, [role, bidderId]);
 
   const isOfficer = role === "officer";
 
   // Categories extracted from tenders
   const categories = ["all", ...new Set(tenders.map((t) => t.category).filter(Boolean))];
 
-  const filteredTenders = tenders.filter((t) => {
+  const filteredTenders = tenders.map((t) => {
+    const existingApp = bidderApplications.find((a) => a.tender_id === t.tender_id);
+    return { ...t, existingApp };
+  }).filter((t) => {
     const matchesSearch =
       (t.title || "").toLowerCase().includes(search.toLowerCase()) ||
       (t.tender_id || "").toLowerCase().includes(search.toLowerCase()) ||
@@ -71,10 +80,26 @@ export default function TenderWorkspace({ onApply, role = "bidder" }) {
         </div>
       </div>
 
-      {/* Loading & Error States */}
+      {/* Loading Skeleton States */}
       {loading && (
-        <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-muted)" }}>
-          Loading active tenders...
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: 18,
+          }}
+        >
+          {[1, 2, 3].map((k) => (
+            <div key={k} className="skeleton-card" style={{ height: 230 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}>
+                <div className="skeleton" style={{ height: 20, width: "40%" }} />
+                <div className="skeleton" style={{ height: 20, width: "30%" }} />
+              </div>
+              <div className="skeleton" style={{ height: 24, width: "80%" }} />
+              <div className="skeleton" style={{ height: 60, width: "100%" }} />
+              <div className="skeleton" style={{ height: 36, width: "100%" }} />
+            </div>
+          ))}
         </div>
       )}
 
@@ -103,22 +128,33 @@ export default function TenderWorkspace({ onApply, role = "bidder" }) {
       )}
 
       {/* Tender Cards Grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
-          gap: 18,
-        }}
-      >
-        {filteredTenders.map((tender) => (
-          <TenderCard key={tender.tender_id} tender={tender} onApply={onApply} isOfficer={isOfficer} />
-        ))}
-      </div>
+      {!loading && (
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))",
+            gap: 18,
+          }}
+        >
+          {filteredTenders.map((tender) => (
+            <TenderCard
+              key={tender.tender_id}
+              tender={tender}
+              existingApp={tender.existingApp}
+              onApply={onApply}
+              onTrackApplication={onTrackApplication}
+              isOfficer={isOfficer}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
-function TenderCard({ tender, onApply, isOfficer }) {
+function TenderCard({ tender, existingApp, onApply, onTrackApplication, isOfficer }) {
+  const isApplied = Boolean(existingApp);
+
   return (
     <div
       className="card"
@@ -127,13 +163,15 @@ function TenderCard({ tender, onApply, isOfficer }) {
         flexDirection: "column",
         justifyContent: "space-between",
         transition: "border-color 0.15s ease, box-shadow 0.15s ease",
+        borderColor: isApplied ? "var(--info-border, #BFDBFE)" : "var(--border-subtle)",
+        background: isApplied ? "linear-gradient(180deg, #FFFFFF 0%, #F8FAFC 100%)" : "#FFFFFF",
       }}
       onMouseOver={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-medium)";
+        e.currentTarget.style.borderColor = isApplied ? "var(--brand-accent)" : "var(--border-medium)";
         e.currentTarget.style.boxShadow = "var(--shadow-md)";
       }}
       onMouseOut={(e) => {
-        e.currentTarget.style.borderColor = "var(--border-subtle)";
+        e.currentTarget.style.borderColor = isApplied ? "var(--info-border, #BFDBFE)" : "var(--border-subtle)";
         e.currentTarget.style.boxShadow = "var(--shadow-xs)";
       }}
     >
@@ -153,7 +191,23 @@ function TenderCard({ tender, onApply, isOfficer }) {
           >
             {tender.tender_id}
           </span>
-          <span className="badge badge-success">Open for Bidding</span>
+
+          {/* Dynamic Status Badge */}
+          {isApplied ? (
+            existingApp.decision === "Qualified" ? (
+              <span className="badge badge-success">✓ Qualified</span>
+            ) : existingApp.decision === "Disqualified" ? (
+              <span className="badge badge-danger">Disqualified</span>
+            ) : existingApp.decision === "Clarification Requested" ? (
+              <span className="badge badge-warning">Action Required</span>
+            ) : existingApp.is_submitted ? (
+              <span className="badge badge-info">✓ Applied (Under Review)</span>
+            ) : (
+              <span className="badge badge-purple">Draft in Progress</span>
+            )
+          ) : (
+            <span className="badge badge-success">Open for Bidding</span>
+          )}
         </div>
 
         {/* Title & Category */}
@@ -196,14 +250,32 @@ function TenderCard({ tender, onApply, isOfficer }) {
 
       {/* Action Footer */}
       {!isOfficer ? (
-        <button
-          type="button"
-          className="primary"
-          onClick={() => onApply(tender.tender_id)}
-          style={{ width: "100%", marginTop: 8 }}
-        >
-          Apply to this Tender &rarr;
-        </button>
+        isApplied ? (
+          <button
+            type="button"
+            className="secondary"
+            onClick={() => onTrackApplication ? onTrackApplication(existingApp.application_id) : onApply(tender.tender_id)}
+            style={{
+              width: "100%",
+              marginTop: 8,
+              background: "#FFFFFF",
+              borderColor: "var(--brand-accent)",
+              color: "var(--brand-accent)",
+              fontWeight: 600,
+            }}
+          >
+            Track Submitted Bid &rarr;
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="primary"
+            onClick={() => onApply(tender.tender_id)}
+            style={{ width: "100%", marginTop: 8 }}
+          >
+            Apply to this Tender &rarr;
+          </button>
+        )
       ) : (
         <div style={{ fontSize: 12, color: "var(--text-muted)", textAlign: "center", paddingTop: 8 }}>
           Published Tender &bull; Officer View Only
@@ -212,3 +284,4 @@ function TenderCard({ tender, onApply, isOfficer }) {
     </div>
   );
 }
+
