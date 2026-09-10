@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { ToastProvider } from "./context/ToastContext";
+import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import TenderWorkspace from "./pages/TenderWorkspace";
 import CreateTender from "./pages/CreateTender";
@@ -6,8 +8,9 @@ import StartApplication from "./pages/StartApplication";
 import UploadDocuments from "./pages/UploadDocuments";
 import Dashboard from "./pages/Dashboard";
 import RiskOverview from "./pages/RiskOverview";
+import BidderTracker from "./pages/BidderTracker";
 
-function App() {
+function MainApp() {
   const [user, setUser] = useState(() => {
     try {
       const saved = localStorage.getItem("gem_user");
@@ -49,7 +52,7 @@ function App() {
 
   function handleLogin(loggedInUser) {
     setUser(loggedInUser);
-    const initialView = loggedInUser.role === "officer" ? "overview" : "workspace";
+    const initialView = loggedInUser.role === "officer" ? "overview" : "tracker";
     setView(initialView);
     try {
       localStorage.setItem("gem_user", JSON.stringify(loggedInUser));
@@ -96,7 +99,7 @@ function App() {
   }
 
   if (!user) {
-    return <LoginPage onLogin={handleLogin} />;
+    return <LandingPage onLogin={handleLogin} />;
   }
 
   const officerTabs = [
@@ -107,6 +110,7 @@ function App() {
   ];
 
   const bidderTabs = [
+    { key: "tracker", label: "My Applications & Status", icon: "📊" },
     { key: "workspace", label: "Tenders", icon: "📋" },
     { key: "apply", label: "Apply for Bid", icon: "📝" },
     { key: "upload", label: "Upload & Verify", icon: "📤" },
@@ -118,6 +122,7 @@ function App() {
     <div style={{ minHeight: "100vh", display: "flex", flexDirection: "column", background: "var(--bg-app)" }}>
       {/* Mobile-Friendly Sticky Navigation Header */}
       <header
+        className="app-header-container"
         style={{
           position: "sticky",
           top: 0,
@@ -126,7 +131,6 @@ function App() {
           backdropFilter: "blur(12px)",
           WebkitBackdropFilter: "blur(12px)",
           borderBottom: "1px solid var(--border-subtle)",
-          padding: "10px 16px",
         }}
       >
         <div
@@ -135,17 +139,26 @@ function App() {
             margin: "0 auto",
             display: "flex",
             flexDirection: "column",
-            gap: 10,
+            gap: 8,
           }}
         >
           {/* Top Row: Brand, Role Badge & User Account */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: 8,
+              minWidth: 0,
+              width: "100%",
+            }}
+          >
             {/* Brand Logo & Name */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0, minWidth: 0 }}>
               <div
                 style={{
-                  width: 28,
-                  height: 28,
+                  width: 26,
+                  height: 26,
                   borderRadius: "var(--radius-sm)",
                   background: "var(--brand-primary)",
                   color: "#fff",
@@ -153,18 +166,19 @@ function App() {
                   alignItems: "center",
                   justifyContent: "center",
                   fontWeight: 800,
-                  fontSize: 12,
+                  fontSize: 11,
+                  flexShrink: 0,
                 }}
               >
                 GeM
               </div>
-              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <span style={{ fontWeight: 700, fontSize: 13.5, color: "var(--text-primary)" }}>
-                  Compliance Portal
+              <div style={{ display: "flex", alignItems: "center", gap: 5, minWidth: 0 }}>
+                <span className="header-brand-title">
+                  Compliance <span className="header-portal-word">Portal</span>
                 </span>
                 <span
                   className={user.role === "officer" ? "badge badge-info" : "badge badge-purple"}
-                  style={{ textTransform: "capitalize", fontSize: 10 }}
+                  style={{ textTransform: "capitalize", fontSize: 9.5, padding: "2px 6px", flexShrink: 0 }}
                 >
                   {user.role === "officer" ? "Officer" : "Bidder"}
                 </span>
@@ -172,13 +186,13 @@ function App() {
             </div>
 
             {/* User Identity & Logout */}
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <div style={{ textAlign: "right" }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: "var(--text-primary)", maxWidth: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 1, minWidth: 0, justifyContent: "flex-end" }}>
+              <div className="header-user-info">
+                <div className="header-user-name" title={user.name}>
                   {user.name}
                 </div>
                 {user.bidderId && (
-                  <div style={{ fontSize: 10, fontFamily: "var(--font-mono)", color: "var(--text-muted)" }}>
+                  <div className="header-bidder-id" title={user.bidderId}>
                     {user.bidderId}
                   </div>
                 )}
@@ -188,15 +202,25 @@ function App() {
                 onClick={handleLogout}
                 style={{
                   padding: "4px 8px",
-                  fontSize: 11.5,
-                  fontWeight: 500,
+                  fontSize: 11,
+                  fontWeight: 600,
                   background: "transparent",
                   border: "1px solid var(--border-subtle)",
                   borderRadius: "var(--radius-sm)",
                   color: "var(--text-secondary)",
+                  flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
                 }}
+                title="Sign out"
               >
-                Sign out
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                  <polyline points="16 17 21 12 16 7" />
+                  <line x1="21" y1="12" x2="9" y2="12" />
+                </svg>
+                <span className="sign-out-text">Logout</span>
               </button>
             </div>
           </div>
@@ -259,6 +283,18 @@ function App() {
         }}
       >
         <div className="animate-fade-in" key={view}>
+          {view === "tracker" && (
+            <BidderTracker
+              bidderId={user.bidderId}
+              bidderName={user.name}
+              onSelectApplication={(id) => {
+                setApplicationId(id);
+                try { localStorage.setItem("gem_applicationId", id); } catch {}
+              }}
+              goToUpload={() => handleViewChange("upload")}
+              goToApply={() => handleViewChange("workspace")}
+            />
+          )}
           {view === "workspace" && <TenderWorkspace onApply={handleApplyToTender} role="bidder" />}
           {view === "alltenders" && <TenderWorkspace role="officer" />}
           {view === "tender" && <CreateTender onTenderCreated={setTenderId} />}
@@ -316,4 +352,11 @@ function App() {
   );
 }
 
-export default App;
+export default function App() {
+  return (
+    <ToastProvider>
+      <MainApp />
+    </ToastProvider>
+  );
+}
+

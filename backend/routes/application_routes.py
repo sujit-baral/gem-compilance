@@ -23,23 +23,46 @@ class ApplicationCreate(BaseModel):
     tender_id: str
     bidder_id: str
 
+from typing import Optional
+from models.document import Document
+
 @router.get("")
-def list_applications(db: Session = Depends(get_db)):
-    applications = db.query(Application).all()
+def list_applications(bidder_id: Optional[str] = None, db: Session = Depends(get_db)):
+    query = db.query(Application)
+    if bidder_id:
+        query = query.filter(Application.bidder_id == bidder_id)
+    
+    applications = query.order_by(Application.created_at.desc()).all()
     result = []
     for a in applications:
         bidder = db.query(Bidder).filter(Bidder.bidder_id == a.bidder_id).first()
         tender = db.query(Tender).filter(Tender.tender_id == a.tender_id).first()
+        docs = db.query(Document).filter(Document.application_id == a.application_id).all()
+        checklist = generate_checklist(tender) if tender else []
+
         result.append({
             "application_id": a.application_id,
+            "bidder_id": a.bidder_id,
             "bidder_name": bidder.company_name if bidder else "Unknown",
             "tender_id": a.tender_id,
             "tender_title": tender.title if tender else "Unknown",
             "compliance_score": a.compliance_score,
             "risk_level": a.risk_level,
             "decision": a.decision,
+            "decision_reason": a.decision_reason,
+            "decided_at": a.decided_at,
+            "decided_by": a.decided_by,
+            "is_submitted": a.is_submitted,
+            "submitted_at": a.submitted_at,
+            "created_at": a.created_at,
+            "uploaded_docs_count": len({d.document_type for d in docs}),
+            "required_docs_count": len(checklist),
         })
     return result
+
+@router.get("/bidder/{bidder_id}")
+def get_bidder_applications(bidder_id: str, db: Session = Depends(get_db)):
+    return list_applications(bidder_id=bidder_id, db=db)
 
 @router.post("")
 def create_application(payload: ApplicationCreate, db: Session = Depends(get_db)):

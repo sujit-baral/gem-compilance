@@ -73,6 +73,9 @@ def get_dashboard(application_id: str, db: Session = Depends(get_db)):
         "risk_level": application.risk_level,
         "ai_recommendation": application.ai_recommendation,
         "decision": application.decision,
+        "decision_reason": application.decision_reason,
+        "decided_by": application.decided_by,
+        "decided_at": application.decided_at,
         "documents": [
             {
                 "document_id": d.document_id,

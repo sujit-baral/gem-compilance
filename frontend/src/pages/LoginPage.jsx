@@ -5,8 +5,108 @@ const OFFICER_USERNAME = "officer";
 const OFFICER_PASSWORD = "gem2026";
 const GMAIL_PATTERN = /^[a-zA-Z0-9._%+-]+@gmail\.com$/;
 
-export default function LoginPage({ onLogin }) {
-  const [role, setRole] = useState("bidder"); // "bidder" | "officer"
+export default function LoginPage({ onLogin, defaultRole = "bidder", isModal = false }) {
+  const [role, setRole] = useState(defaultRole); // "bidder" | "officer"
+
+  const cardContent = (
+    <div
+      className="card"
+      style={{
+        width: "100%",
+        maxWidth: isModal ? 520 : 460,
+        boxShadow: isModal ? "0 25px 50px -12px rgba(15, 23, 42, 0.25)" : "var(--shadow-lg)",
+        borderRadius: "var(--radius-xl)",
+        padding: isModal ? "32px 36px" : 28,
+        background: "#FFFFFF",
+        border: "1px solid var(--border-subtle)",
+      }}
+    >
+      {/* Modal / Card Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 20 }}>
+        <div
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: "var(--radius-md)",
+            background: "var(--brand-primary)",
+            color: "#fff",
+            display: "inline-flex",
+            alignItems: "center",
+            justifyContent: "center",
+            fontWeight: 800,
+            fontSize: 13,
+          }}
+        >
+          GeM
+        </div>
+        <div>
+          <h2 style={{ fontSize: 17, fontWeight: 700, margin: 0, color: "var(--text-primary)" }}>
+            {role === "officer" ? "Procurement Officer Access" : "Bidder & Vendor Portal"}
+          </h2>
+          <p style={{ fontSize: 12, color: "var(--text-muted)", margin: 0 }}>
+            {role === "officer" ? "Authorized compliance evaluation workspace" : "Bid submission & automated OCR verification"}
+          </p>
+        </div>
+      </div>
+
+      {/* Role Segmented Switcher */}
+      <div
+        style={{
+          display: "flex",
+          background: "var(--bg-subtle)",
+          padding: 3,
+          borderRadius: "var(--radius-md)",
+          border: "1px solid var(--border-subtle)",
+          marginBottom: 22,
+        }}
+      >
+        <button
+          type="button"
+          onClick={() => setRole("bidder")}
+          style={{
+            flex: 1,
+            background: role === "bidder" ? "#FFFFFF" : "transparent",
+            color: role === "bidder" ? "var(--text-primary)" : "var(--text-secondary)",
+            boxShadow: role === "bidder" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+            borderRadius: "var(--radius-sm)",
+            padding: "8px 0",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "none",
+          }}
+        >
+          🏢 Bidder Portal
+        </button>
+        <button
+          type="button"
+          onClick={() => setRole("officer")}
+          style={{
+            flex: 1,
+            background: role === "officer" ? "#FFFFFF" : "transparent",
+            color: role === "officer" ? "var(--text-primary)" : "var(--text-secondary)",
+            boxShadow: role === "officer" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
+            borderRadius: "var(--radius-sm)",
+            padding: "8px 0",
+            fontSize: 13,
+            fontWeight: 600,
+            border: "none",
+          }}
+        >
+          🛡️ Officer Access
+        </button>
+      </div>
+
+      {role === "officer" ? (
+        <OfficerLoginForm onLogin={onLogin} />
+      ) : (
+        <BidderAuthForm onLogin={onLogin} />
+      )}
+    </div>
+  );
+
+  if (isModal) {
+    return cardContent;
+  }
 
   return (
     <div
@@ -48,70 +148,7 @@ export default function LoginPage({ onLogin }) {
         </p>
       </div>
 
-      {/* Main Login Card */}
-      <div
-        className="card"
-        style={{
-          width: "100%",
-          maxWidth: 440,
-          boxShadow: "var(--shadow-lg)",
-          borderRadius: "var(--radius-xl)",
-          padding: 28,
-        }}
-      >
-        {/* Role Segmented Switcher */}
-        <div
-          style={{
-            display: "flex",
-            background: "var(--bg-subtle)",
-            padding: 3,
-            borderRadius: "var(--radius-md)",
-            border: "1px solid var(--border-subtle)",
-            marginBottom: 24,
-          }}
-        >
-          <button
-            type="button"
-            onClick={() => setRole("bidder")}
-            style={{
-              flex: 1,
-              background: role === "bidder" ? "#FFFFFF" : "transparent",
-              color: role === "bidder" ? "var(--text-primary)" : "var(--text-secondary)",
-              boxShadow: role === "bidder" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "7px 0",
-              fontSize: 13,
-              fontWeight: 600,
-              border: "none",
-            }}
-          >
-            🏢 Bidder Portal
-          </button>
-          <button
-            type="button"
-            onClick={() => setRole("officer")}
-            style={{
-              flex: 1,
-              background: role === "officer" ? "#FFFFFF" : "transparent",
-              color: role === "officer" ? "var(--text-primary)" : "var(--text-secondary)",
-              boxShadow: role === "officer" ? "0 1px 2px rgba(0,0,0,0.06)" : "none",
-              borderRadius: "var(--radius-sm)",
-              padding: "7px 0",
-              fontSize: 13,
-              fontWeight: 600,
-              border: "none",
-            }}
-          >
-            🛡️ Officer Access
-          </button>
-        </div>
-
-        {role === "officer" ? (
-          <OfficerLoginForm onLogin={onLogin} />
-        ) : (
-          <BidderAuthForm onLogin={onLogin} />
-        )}
-      </div>
+      {cardContent}
 
       <div style={{ marginTop: 24, textAlign: "center", fontSize: 12, color: "var(--text-muted)" }}>
         Secure GeM Tender Verification &bull; AI Powered OCR &bull; ISO Compliant

@@ -67,8 +67,11 @@ export async function listTenders() {
   return res.json();
 }
 
-export async function listApplications() {
-  const res = await fetch(`${BASE_URL}/applications`);
+export async function listApplications(bidderId = null) {
+  const url = bidderId
+    ? `${BASE_URL}/applications?bidder_id=${encodeURIComponent(bidderId)}`
+    : `${BASE_URL}/applications`;
+  const res = await fetch(url);
   return res.json();
 }
 

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { createApplication, listTenders } from "../api/client";
+import { useToast } from "../context/ToastContext";
 
 export default function StartApplication({
   onApplicationCreated,
@@ -10,6 +11,7 @@ export default function StartApplication({
   bidderName,
   goToUpload,
 }) {
+  const toast = useToast();
   const [application, setApplication] = useState(null);
   const [loading, setLoading] = useState(false);
   const [tenders, setTenders] = useState([]);
@@ -32,11 +34,13 @@ export default function StartApplication({
 
       if (response.detail) {
         setError(response.detail);
+        toast.error("Application Failed", response.detail);
         setLoading(false);
         return;
       }
 
       setApplication(response);
+      toast.success("Application Initialized", `ID: ${response.application?.application_id}`);
       if (onApplicationCreated && response.application?.application_id) {
         onApplicationCreated(response.application.application_id);
       }
@@ -45,6 +49,7 @@ export default function StartApplication({
       }
     } catch {
       setError("Failed to create application. Please check your backend connection.");
+      toast.error("Network Error", "Unable to start application.");
     } finally {
       setLoading(false);
     }

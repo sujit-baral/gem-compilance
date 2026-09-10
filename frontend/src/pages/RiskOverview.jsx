@@ -121,8 +121,14 @@ export default function RiskOverview({ onSelectApplication, goToDashboard }) {
 
       {/* Applications Table */}
       {loading ? (
-        <div style={{ padding: "48px 0", textAlign: "center", color: "var(--text-muted)" }}>
-          Loading risk overview...
+        <div className="skeleton-card" style={{ padding: 20 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 16 }}>
+            <div className="skeleton" style={{ height: 20, width: "30%" }} />
+            <div className="skeleton" style={{ height: 20, width: "20%" }} />
+          </div>
+          <div className="skeleton" style={{ height: 36, width: "100%", marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 36, width: "100%", marginBottom: 8 }} />
+          <div className="skeleton" style={{ height: 36, width: "100%" }} />
         </div>
       ) : error ? (
         <div

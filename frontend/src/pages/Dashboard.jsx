@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { getDashboard, submitDecision, BASE_URL } from "../api/client";
+import { useToast } from "../context/ToastContext";
 
 const FIELD_LABELS = {
   pan: "PAN Number",
@@ -23,26 +24,37 @@ function formatFieldLabel(key) {
 }
 
 export default function Dashboard({ applicationId, setApplicationId }) {
+  const toast = useToast();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
   const [decisionReason, setDecisionReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [decisionFeedback, setDecisionFeedback] = useState("");
+  const [isEditingDecision, setIsEditingDecision] = useState(false);
 
   async function fetchDashboard() {
     if (!applicationId) return;
     setLoading(true);
     setErrorMsg("");
+    setDecisionFeedback("");
     try {
       const response = await getDashboard(applicationId.trim());
       if (response.detail) {
         setErrorMsg(response.detail);
+        toast.error("Application Not Found", response.detail);
         setData(null);
       } else {
         setData(response);
+        if (response.decision_reason) {
+          setDecisionReason(response.decision_reason);
+        }
+        setIsEditingDecision(!response.decision);
+        toast.success("Application Loaded", `Compliance: ${response.compliance_score || 0}% (${response.risk_level || "Scrutiny"})`);
       }
     } catch {
       setErrorMsg("Failed to load application data. Please check ID.");
+      toast.error("Connection Failed", "Unable to load scrutiny record.");
     } finally {
       setLoading(false);
     }
@@ -51,15 +63,25 @@ export default function Dashboard({ applicationId, setApplicationId }) {
   async function handleDecision(decision) {
     if (!applicationId) return;
     setSubmitting(true);
+    setDecisionFeedback("");
     try {
       const response = await submitDecision(applicationId, {
         decision,
         decision_reason: decisionReason,
         decided_by: "officer_demo",
       });
-      setData((prev) => ({ ...prev, decision: response.decision }));
+      setData((prev) => ({
+        ...prev,
+        decision: response.decision,
+        decision_reason: response.decision_reason,
+        decided_by: response.decided_by,
+        decided_at: response.decided_at,
+      }));
+      setDecisionFeedback(`Decision successfully recorded: ${response.decision}`);
+      setIsEditingDecision(false);
+      toast.success("Decision Logged", `Application marked as "${response.decision}".`);
     } catch {
-      alert("Failed to submit decision.");
+      toast.error("Decision Error", "Failed to submit decision.");
     } finally {
       setSubmitting(false);
     }
@@ -113,7 +135,24 @@ export default function Dashboard({ applicationId, setApplicationId }) {
         </div>
       )}
 
-      {data && (
+      {/* Skeleton Loading State */}
+      {loading && (
+        <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
+            <div className="skeleton-card"><div className="skeleton" style={{ height: 20, width: "50%" }} /><div className="skeleton" style={{ height: 40, width: "70%" }} /></div>
+            <div className="skeleton-card"><div className="skeleton" style={{ height: 20, width: "50%" }} /><div className="skeleton" style={{ height: 40, width: "60%" }} /></div>
+            <div className="skeleton-card"><div className="skeleton" style={{ height: 20, width: "50%" }} /><div className="skeleton" style={{ height: 40, width: "80%" }} /></div>
+          </div>
+          <div className="skeleton-card" style={{ height: 180 }}>
+            <div className="skeleton" style={{ height: 24, width: "30%" }} />
+            <div className="skeleton" style={{ height: 18, width: "100%" }} />
+            <div className="skeleton" style={{ height: 18, width: "90%" }} />
+            <div className="skeleton" style={{ height: 18, width: "95%" }} />
+          </div>
+        </div>
+      )}
+
+      {!loading && data && (
         <div className="animate-fade-in" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Top KPI Metric Cards */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 16 }}>
@@ -301,48 +340,140 @@ export default function Dashboard({ applicationId, setApplicationId }) {
             </div>
           </div>
 
-          {/* Officer Decision Panel */}
+          {/* Officer Decision & Status Panel */}
           <div className="card">
-            <h3 style={{ fontSize: 16, marginBottom: 12 }}>Submit Official Procurement Decision</h3>
-
-            <label>Decision Notes / Audit Justification</label>
-            <textarea
-              value={decisionReason}
-              onChange={(e) => setDecisionReason(e.target.value)}
-              placeholder="Provide justification for qualification, disqualification, or clarification inquiry..."
-              rows={2}
-              style={{ marginBottom: 16 }}
-            />
-
-            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-              <button
-                type="button"
-                className="primary"
-                onClick={() => handleDecision("Qualified")}
-                disabled={submitting}
-                style={{ background: "var(--success)" }}
+            {decisionFeedback && (
+              <div
+                className="badge badge-success"
+                style={{ width: "100%", padding: "10px 14px", marginBottom: 16, fontSize: 13 }}
               >
-                ✓ Qualify Bidder
-              </button>
+                ✓ {decisionFeedback}
+              </div>
+            )}
 
-              <button
-                type="button"
-                className="danger"
-                onClick={() => handleDecision("Disqualified")}
-                disabled={submitting}
-              >
-                ✕ Disqualify Bidder
-              </button>
+            {/* If Decision has already been made and officer is not editing */}
+            {data.decision && !isEditingDecision ? (
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16, flexWrap: "wrap", gap: 8 }}>
+                  <div>
+                    <h3 style={{ fontSize: 16, margin: 0 }}>Recorded Procurement Decision</h3>
+                    <p style={{ fontSize: 12.5, color: "var(--text-muted)", margin: "4px 0 0" }}>
+                      This application has been reviewed and logged in the immutable audit trail.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => setIsEditingDecision(true)}
+                    style={{ fontSize: 12, padding: "5px 12px" }}
+                  >
+                    ✏️ Revise Decision
+                  </button>
+                </div>
 
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => handleDecision("Clarification Requested")}
-                disabled={submitting}
-              >
-                💬 Request Clarification
-              </button>
-            </div>
+                <div
+                  style={{
+                    background: "var(--bg-subtle)",
+                    borderRadius: "var(--radius-md)",
+                    padding: 16,
+                    border: "1px solid var(--border-subtle)",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: 10,
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                    <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--text-secondary)" }}>Outcome:</span>
+                    <span
+                      className={
+                        data.decision === "Qualified"
+                          ? "badge badge-success"
+                          : data.decision === "Disqualified"
+                          ? "badge badge-danger"
+                          : "badge badge-warning"
+                      }
+                      style={{ fontSize: 13, padding: "4px 12px" }}
+                    >
+                      {data.decision}
+                    </span>
+                  </div>
+
+                  {data.decision_reason && (
+                    <div>
+                      <div style={{ fontSize: 11.5, fontWeight: 600, color: "var(--text-muted)", textTransform: "uppercase" }}>
+                        Officer Justification Notes:
+                      </div>
+                      <div style={{ fontSize: 13.5, color: "var(--text-primary)", background: "#FFFFFF", padding: "8px 12px", borderRadius: "var(--radius-sm)", border: "1px solid var(--border-subtle)", marginTop: 4 }}>
+                        {data.decision_reason}
+                      </div>
+                    </div>
+                  )}
+
+                  <div style={{ fontSize: 11.5, color: "var(--text-muted)", marginTop: 4 }}>
+                    Logged by <strong style={{ color: "var(--text-secondary)" }}>{data.decided_by || "officer_demo"}</strong>
+                    {data.decided_at && ` • ${new Date(data.decided_at).toLocaleString()}`}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* If no decision has been made or officer is actively revising */
+              <div>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                  <h3 style={{ fontSize: 16, margin: 0 }}>
+                    {data.decision ? "Revise Procurement Decision" : "Submit Official Procurement Decision"}
+                  </h3>
+                  {data.decision && (
+                    <button
+                      type="button"
+                      className="secondary"
+                      onClick={() => setIsEditingDecision(false)}
+                      style={{ fontSize: 12, padding: "4px 10px" }}
+                    >
+                      Cancel
+                    </button>
+                  )}
+                </div>
+
+                <label>Decision Notes / Audit Justification</label>
+                <textarea
+                  value={decisionReason}
+                  onChange={(e) => setDecisionReason(e.target.value)}
+                  placeholder="Provide justification for qualification, disqualification, or clarification inquiry..."
+                  rows={2}
+                  style={{ marginBottom: 16 }}
+                />
+
+                <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={() => handleDecision("Qualified")}
+                    disabled={submitting}
+                    style={{ background: "var(--success)" }}
+                  >
+                    {submitting ? "Saving..." : "✓ Qualify Bidder"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="danger"
+                    onClick={() => handleDecision("Disqualified")}
+                    disabled={submitting}
+                  >
+                    {submitting ? "Saving..." : "✕ Disqualify Bidder"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="secondary"
+                    onClick={() => handleDecision("Clarification Requested")}
+                    disabled={submitting}
+                  >
+                    {submitting ? "Saving..." : "💬 Request Clarification"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

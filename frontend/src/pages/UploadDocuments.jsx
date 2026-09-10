@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { uploadDocument, getApplicationDocuments, submitApplication, BASE_URL } from "../api/client";
+import { useToast } from "../context/ToastContext";
 
 const FALLBACK_DOCUMENT_TYPES = [
   "PAN Card",
@@ -34,6 +35,7 @@ export default function UploadDocuments({
   setApplicationId,
   checklist,
 }) {
+  const toast = useToast();
   const [documentType, setDocumentType] = useState("");
   const [file, setFile] = useState(null);
   const [phase, setPhase] = useState("idle"); // "idle" | "processing" | "result"
@@ -98,6 +100,7 @@ export default function UploadDocuments({
       const response = await uploadPromise;
       if (response.detail) {
         setErrorMsg(response.detail);
+        toast.error("Verification Issue", response.detail);
         setPhase("idle");
         return;
       }
@@ -106,8 +109,10 @@ export default function UploadDocuments({
       setResult(response);
       setHistory((prev) => [response, ...prev.filter((d) => d.document_type !== response.document_type)]);
       setPhase("result");
+      toast.success("Document Verified", `${documentType} processed successfully.`);
     } catch {
       setErrorMsg("Upload failed due to connection error. Please try again.");
+      toast.error("Upload Error", "Connection failed. Please retry.");
       setPhase("idle");
     }
   }
@@ -120,11 +125,14 @@ export default function UploadDocuments({
       const res = await submitApplication(applicationId);
       if (res.detail) {
         setErrorMsg(res.detail);
+        toast.error("Submission Incomplete", res.detail);
       } else {
         setSubmissionSuccess(true);
+        toast.success("Application Submitted", "All mandatory documents verified and submitted for officer scrutiny.");
       }
     } catch {
       setErrorMsg("Submission error. Ensure all mandatory documents are uploaded.");
+      toast.error("Submission Failed", "Please verify all mandatory certificates are uploaded.");
     } finally {
       setSubmitting(false);
     }

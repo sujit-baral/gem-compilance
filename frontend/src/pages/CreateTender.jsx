@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { createTender } from "../api/client";
+import { useToast } from "../context/ToastContext";
 
 export default function CreateTender({ onTenderCreated }) {
+  const toast = useToast();
   const [form, setForm] = useState({
     title: "",
     category: "Electronics",
@@ -49,14 +51,17 @@ export default function CreateTender({ onTenderCreated }) {
       const response = await createTender(payload);
       if (response.detail) {
         setError(response.detail);
+        toast.error("Creation Failed", response.detail);
       } else {
         setResult(response);
+        toast.success("Tender Published", `Tender ID: ${response.tender_id}`);
         if (onTenderCreated && response.tender_id) {
           onTenderCreated(response.tender_id);
         }
       }
     } catch {
       setError("Failed to create tender. Please check backend connection.");
+      toast.error("Network Error", "Could not publish tender.");
     } finally {
       setLoading(false);
     }
